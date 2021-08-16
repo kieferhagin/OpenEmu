@@ -628,33 +628,20 @@ typedef NS_ENUM(NSUInteger, OEEmulationStatus)
             // import probably failed
             if(!romID) return;
             
-            OEAlert *alert = [[OEAlert alloc] init];
-            
-            NSString *fileName    = [[absoluteURL lastPathComponent] stringByDeletingPathExtension];
-            NSString *messageText = [NSString stringWithFormat:NSLocalizedString(@"The game '%@' was imported.", @""), fileName];
-            
-            alert.messageText = NSLocalizedString(@"Your game finished importing, do you want to play it now?", @"");
-            alert.informativeText = messageText;
-            alert.defaultButtonTitle = NSLocalizedString(@"Play Game", @"");
-            alert.alternateButtonTitle = NSLocalizedString(@"Cancel", @"");
-            
-            if([alert runModal] == NSAlertFirstButtonReturn)
+            NSManagedObjectContext *context = [[OELibraryDatabase defaultDatabase] mainThreadContext];
+            OEDBRom *rom = [OEDBRom objectWithID:romID inContext:context];
+
+            // Ugly hack to start imported games in main window
+            OEMainWindowController *mainWindowController = [(OEApplicationDelegate*)[NSApp delegate] mainWindowController];
+            if([mainWindowController mainWindowRunsGame] == NO)
             {
-                NSManagedObjectContext *context = [[OELibraryDatabase defaultDatabase] mainThreadContext];
-                OEDBRom *rom = [OEDBRom objectWithID:romID inContext:context];
-                
-                // Ugly hack to start imported games in main window
-                OEMainWindowController *mainWindowController = [(OEApplicationDelegate*)[NSApp delegate] mainWindowController];
-                if([mainWindowController mainWindowRunsGame] == NO)
-                {
-                    [mainWindowController startGame:[rom game]];
-                }
-                else
-                {
-                    [[NSDocumentController sharedDocumentController] openDocumentWithContentsOfURL:[rom URL] display:NO completionHandler:^(NSDocument * _Nullable document, BOOL documentWasAlreadyOpen, NSError * _Nullable error) {
-                        ;
-                    }];
-                }
+                [mainWindowController startGame:[rom game]];
+            }
+            else
+            {
+                [[NSDocumentController sharedDocumentController] openDocumentWithContentsOfURL:[rom URL] display:NO completionHandler:^(NSDocument * _Nullable document, BOOL documentWasAlreadyOpen, NSError * _Nullable error) {
+                    ;
+                }];
             }
         };
         
